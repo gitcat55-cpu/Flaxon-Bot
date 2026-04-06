@@ -22,23 +22,41 @@ jobs:
         run: sudo apt-get update && sudo apt-get install -y gradle
 
       - name: فك الضغط
-        run: unzip flaxon-bot.zip
+        run: unzip -o flaxon-bot.zip
 
-      - name: بناء المشروع (مع إنشاء gradlew إذا غير موجود)
+      - name: عرض الملفات (للتأكد)
+        run: ls -R
+
+      - name: العثور على المشروع وبنائه
         run: |
-          cd flaxon-bot/android-project
+          # البحث عن settings.gradle أو build.gradle
+          DIR=$(find . -type f \( -name "settings.gradle" -o -name "settings.gradle.kts" \) | head -n 1 | xargs dirname)
 
-          # إذا gradlew غير موجود، نسويه
+          echo "Project found at: $DIR"
+
+          cd "$DIR"
+
+          # تأكد أن المشروع صحيح
+          if [ ! -f "build.gradle" ] && [ ! -f "build.gradle.kts" ]; then
+            echo "No Gradle project found!"
+            exit 1
+          fi
+
+          # إذا gradlew غير موجود، ننشئه بإصدار حديث
           if [ ! -f "gradlew" ]; then
-            echo "gradlew not found, generating..."
-            gradle wrapper
+            echo "gradlew not found, generating with Gradle 8.5..."
+            gradle wrapper --gradle-version 8.5
           fi
 
           chmod +x gradlew
-          ./gradlew assembleDebug
+
+          # تنظيف + بناء
+          ./gradlew clean assembleDebug --no-daemon --stacktrace
 
       - name: رفع APK
         uses: actions/upload-artifact@v4
         with:
           name: app-debug
-          path: "**/build/outputs/apk/debug/*.apk"
+          path: |
+            **/build/outputs/apk/debug/*.apk
+            **/build/outputs/apk/*/*.apk
