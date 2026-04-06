@@ -1,4 +1,4 @@
-name: Build APK from ZIP
+name: Build APK from ZIP URL
 
 on:
   push:
@@ -9,8 +9,14 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: سحب المشروع
-        uses: actions/checkout@v4
+      - name: تثبيت الأدوات
+        run: sudo apt-get update && sudo apt-get install -y unzip wget
+
+      - name: تحميل ملف ZIP
+        run: wget -O project.zip "https://files.catbox.moe/tod4p7.zip"
+
+      - name: فك الضغط
+        run: unzip -o project.zip
 
       - name: تثبيت Java
         uses: actions/setup-java@v4
@@ -18,39 +24,18 @@ jobs:
           distribution: 'temurin'
           java-version: '17'
 
-      - name: فك الضغط
-        run: unzip -o flaxon-bot.zip
-
-      - name: تحميل Gradle حديث
-        run: |
-          wget https://services.gradle.org/distributions/gradle-8.5-bin.zip
-          unzip -q gradle-8.5-bin.zip
-
       - name: بناء المشروع
         run: |
-          export GRADLE_HOME=$PWD/gradle-8.5
-          export PATH=$GRADLE_HOME/bin:$PATH
-
-          DIR=$(find . -name "settings.gradle" | head -n 1 | xargs dirname)
+          DIR=$(find . -type f -name "gradlew" | head -n 1 | xargs dirname)
           echo "Project at: $DIR"
 
           cd "$DIR"
 
-          # 🔥 إصلاح مشكلة repositories تلقائي
-          sed -i '/repositories {/,/}/d' build.gradle || true
-          sed -i '/repositories {/,/}/d' app/build.gradle || true
-
-          # إنشاء gradlew إذا غير موجود
-          if [ ! -f "gradlew" ]; then
-            gradle wrapper --gradle-version 8.5
-          fi
-
           chmod +x gradlew
-
           ./gradlew clean assembleDebug --no-daemon --stacktrace
 
       - name: رفع APK
         uses: actions/upload-artifact@v4
         with:
           name: app-debug
-          path: "**/build/outputs/apk/**/*.apk"
+          path: "**/build/outputs/apk/debug/*.apk"
