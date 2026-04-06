@@ -21,30 +21,27 @@ jobs:
       - name: فك الضغط
         run: unzip -o flaxon-bot.zip
 
-      - name: عرض الملفات
-        run: ls -R
-
       - name: تحميل Gradle حديث
         run: |
           wget https://services.gradle.org/distributions/gradle-8.5-bin.zip
-          unzip gradle-8.5-bin.zip
-          export GRADLE_HOME=$PWD/gradle-8.5
-          export PATH=$GRADLE_HOME/bin:$PATH
-          gradle -v
+          unzip -q gradle-8.5-bin.zip
 
       - name: بناء المشروع
         run: |
           export GRADLE_HOME=$PWD/gradle-8.5
           export PATH=$GRADLE_HOME/bin:$PATH
 
-          DIR=$(find . -type f -name "settings.gradle" | head -n 1 | xargs dirname)
-          echo "Project found at: $DIR"
+          DIR=$(find . -name "settings.gradle" | head -n 1 | xargs dirname)
+          echo "Project at: $DIR"
 
           cd "$DIR"
 
-          # إذا gradlew غير موجود، ننشئه باستخدام Gradle الحديث
+          # 🔥 إصلاح مشكلة repositories تلقائي
+          sed -i '/repositories {/,/}/d' build.gradle || true
+          sed -i '/repositories {/,/}/d' app/build.gradle || true
+
+          # إنشاء gradlew إذا غير موجود
           if [ ! -f "gradlew" ]; then
-            echo "Generating gradlew with Gradle 8.5..."
             gradle wrapper --gradle-version 8.5
           fi
 
