@@ -18,14 +18,27 @@ jobs:
           distribution: 'temurin'
           java-version: '17'
 
+      - name: تثبيت Gradle
+        run: sudo apt-get update && sudo apt-get install -y gradle
+
       - name: فك الضغط
         run: unzip flaxon-bot.zip
 
-      - name: الدخول للمجلد
-        run: cd flaxon-bot/android-project && chmod +x gradlew && ./gradlew assembleDebug
+      - name: بناء المشروع (مع إنشاء gradlew إذا غير موجود)
+        run: |
+          cd flaxon-bot/android-project
+
+          # إذا gradlew غير موجود، نسويه
+          if [ ! -f "gradlew" ]; then
+            echo "gradlew not found, generating..."
+            gradle wrapper
+          fi
+
+          chmod +x gradlew
+          ./gradlew assembleDebug
 
       - name: رفع APK
         uses: actions/upload-artifact@v4
         with:
           name: app-debug
-          path: flaxon-bot/android-project/app/build/outputs/apk/debug/*.apk
+          path: "**/build/outputs/apk/debug/*.apk"
