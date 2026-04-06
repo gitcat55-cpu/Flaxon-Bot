@@ -1,0 +1,31 @@
+name: Build APK from ZIP
+
+on:
+  push:
+    branches: [ main ]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: سحب المشروع
+        uses: actions/checkout@v4
+
+      - name: تثبيت Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+
+      - name: فك الضغط
+        run: unzip flaxon-bot.zip
+
+      - name: الدخول للمجلد
+        run: cd flaxon-bot/android-project && chmod +x gradlew && ./gradlew assembleDebug
+
+      - name: رفع APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: app-debug
+          path: flaxon-bot/android-project/app/build/outputs/apk/debug/*.apk
