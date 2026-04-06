@@ -18,45 +18,42 @@ jobs:
           distribution: 'temurin'
           java-version: '17'
 
-      - name: تثبيت Gradle
-        run: sudo apt-get update && sudo apt-get install -y gradle
-
       - name: فك الضغط
         run: unzip -o flaxon-bot.zip
 
-      - name: عرض الملفات (للتأكد)
+      - name: عرض الملفات
         run: ls -R
 
-      - name: العثور على المشروع وبنائه
+      - name: تحميل Gradle حديث
         run: |
-          # البحث عن settings.gradle أو build.gradle
-          DIR=$(find . -type f \( -name "settings.gradle" -o -name "settings.gradle.kts" \) | head -n 1 | xargs dirname)
+          wget https://services.gradle.org/distributions/gradle-8.5-bin.zip
+          unzip gradle-8.5-bin.zip
+          export GRADLE_HOME=$PWD/gradle-8.5
+          export PATH=$GRADLE_HOME/bin:$PATH
+          gradle -v
 
+      - name: بناء المشروع
+        run: |
+          export GRADLE_HOME=$PWD/gradle-8.5
+          export PATH=$GRADLE_HOME/bin:$PATH
+
+          DIR=$(find . -type f -name "settings.gradle" | head -n 1 | xargs dirname)
           echo "Project found at: $DIR"
 
           cd "$DIR"
 
-          # تأكد أن المشروع صحيح
-          if [ ! -f "build.gradle" ] && [ ! -f "build.gradle.kts" ]; then
-            echo "No Gradle project found!"
-            exit 1
-          fi
-
-          # إذا gradlew غير موجود، ننشئه بإصدار حديث
+          # إذا gradlew غير موجود، ننشئه باستخدام Gradle الحديث
           if [ ! -f "gradlew" ]; then
-            echo "gradlew not found, generating with Gradle 8.5..."
+            echo "Generating gradlew with Gradle 8.5..."
             gradle wrapper --gradle-version 8.5
           fi
 
           chmod +x gradlew
 
-          # تنظيف + بناء
           ./gradlew clean assembleDebug --no-daemon --stacktrace
 
       - name: رفع APK
         uses: actions/upload-artifact@v4
         with:
           name: app-debug
-          path: |
-            **/build/outputs/apk/debug/*.apk
-            **/build/outputs/apk/*/*.apk
+          path: "**/build/outputs/apk/**/*.apk"
