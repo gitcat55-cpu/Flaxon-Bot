@@ -24,10 +24,13 @@ jobs:
           distribution: 'temurin'
           java-version: '17'
 
-      - name: إنشاء أيقونات افتراضية إذا كانت مفقودة
+      - name: إصلاح المشروع وبناءه
         run: |
           DIR=$(find . -type f -name "gradlew" | head -n 1 | xargs dirname)
+          echo "Project at: $DIR"
           RES_DIR="$DIR/app/src/main/res"
+
+          # إصلاح الأيقونات
           wget -q "https://placehold.co/192x192.png" -O /tmp/icon.png
           for density in mipmap-mdpi mipmap-hdpi mipmap-xhdpi mipmap-xxhdpi mipmap-xxxhdpi; do
             mkdir -p "$RES_DIR/$density"
@@ -35,10 +38,16 @@ jobs:
             cp /tmp/icon.png "$RES_DIR/$density/ic_launcher_round.png"
           done
 
-      - name: بناء المشروع
-        run: |
-          DIR=$(find . -type f -name "gradlew" | head -n 1 | xargs dirname)
-          echo "Project at: $DIR"
+          # إصلاح import BuildConfig
+          FILE=$(find "$DIR" -name "MainActivity.java" | head -n 1)
+          if [ -n "$FILE" ]; then
+            PKG=$(grep "^package " "$FILE" | head -n 1 | sed 's/package //;s/;//')
+            if ! grep -q "import.*BuildConfig" "$FILE"; then
+              sed -i "s/^package .*;/&\nimport ${PKG}.BuildConfig;/" "$FILE"
+            fi
+          fi
+
+          # البناء
           cd "$DIR"
           chmod +x gradlew
           ./gradlew clean assembleDebug --no-daemon --stacktrace
